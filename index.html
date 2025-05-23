@@ -462,6 +462,40 @@
       cursor: pointer;
       z-index: 1000;
     }
+
+    /* Scrollbar styles */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #111;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #2eaddc;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #1d8cb5;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #2eaddc;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -537,17 +571,7 @@
       <p>Top token holders in the community</p>
       
       <div id="leaderboardList">
-        <div class="leaderboard-item">
-          <div class="leaderboard-position">1</div>
-          <div class="leaderboard-name">Top Holder</div>
-          <div class="leaderboard-tokens">0 SYM</div>
-        </div>
-        
-        <div class="leaderboard-item user-you">
-          <div class="leaderboard-position" id="user-position">-</div>
-          <div class="leaderboard-name">You</div>
-          <div class="leaderboard-tokens" id="user-tokens">0 SYM</div>
-        </div>
+        <div class="spinner" id="leaderboardSpinner"></div>
       </div>
     </div>
 
@@ -629,7 +653,7 @@
     <table class="user-table">
       <thead>
         <tr>
-          <th>User ID</th>
+          <th>Position</th>
           <th>Username</th>
           <th>Tokens</th>
           <th>Referrals</th>
@@ -668,10 +692,19 @@
       share: "https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=USER123&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!"
     };
     
+    // Sample leaderboard data with Telegram usernames
     const leaderboardData = [
-      { name: "Top Holder", tokens: 500 },
-      { name: "Second Holder", tokens: 300 },
-      { name: "Third Holder", tokens: 200 }
+      { id: "user1", username: "@topuser", tokens: 5000 },
+      { id: "user2", username: "@seconduser", tokens: 3000 },
+      { id: "user3", username: "@thirduser", tokens: 2000 },
+      { id: "user4", username: "@user4", tokens: 1500 },
+      { id: "user5", username: "@user5", tokens: 1200 },
+      { id: "user6", username: "@user6", tokens: 1000 },
+      { id: "user7", username: "@user7", tokens: 900 },
+      { id: "user8", username: "@user8", tokens: 800 },
+      { id: "user9", username: "@user9", tokens: 700 },
+      { id: "user10", username: "@user10", tokens: 600 },
+      // Add more users as needed up to 1000
     ];
 
     // First show welcome animation, then main app
@@ -702,6 +735,7 @@
       
       // Generate user ID for referral link
       const userId = tgUser?.id ? tgUser.id.toString() : "user_" + Math.random().toString(36).substring(2, 8);
+      const username = tgUser?.username ? `@${tgUser.username}` : "You";
       document.getElementById('referralCode').textContent = `https://t.me/whitesymbol_bot?ref=${userId}`;
       SOCIAL_LINKS.share = `https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=${userId}&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!`;
 
@@ -735,7 +769,6 @@
       
       // Update UI with loaded data
       updateTokenBalance();
-      updateLeaderboard();
       updateTaskButtons();
       
       // Check for referral parameter
@@ -967,18 +1000,26 @@
     
     function updateTokenBalance() {
       document.getElementById('tokenBalance').textContent = `${tokenBalance} SYM`;
-      document.getElementById('user-tokens').textContent = `${tokenBalance} SYM`;
       document.getElementById('earnedFromReferrals').textContent = earnedFromReferrals;
       document.getElementById('totalReferrals').textContent = totalReferrals;
     }
     
     function updateLeaderboard() {
+      const tg = window.Telegram.WebApp;
+      const tgUser = tg.initDataUnsafe?.user;
+      const username = tgUser?.username ? `@${tgUser.username}` : "You";
+      
       // Create a combined leaderboard with all users plus the current user
       let combinedLeaderboard = [...leaderboardData];
       
       // Add current user to the leaderboard if they have tokens
       if (tokenBalance > 0) {
-        combinedLeaderboard.push({ name: "You", tokens: tokenBalance, isYou: true });
+        combinedLeaderboard.push({ 
+          id: tgUser?.id || "current_user", 
+          username: username, 
+          tokens: tokenBalance, 
+          isYou: true 
+        });
       }
       
       // Sort by tokens descending
@@ -988,8 +1029,12 @@
       const leaderboardList = document.getElementById('leaderboardList');
       leaderboardList.innerHTML = '';
       
-      // Show top 10 or all if less than 10
-      const displayCount = Math.min(combinedLeaderboard.length, 10);
+      // Remove spinner
+      const spinner = document.getElementById('leaderboardSpinner');
+      if (spinner) spinner.remove();
+      
+      // Show top 1000 users
+      const displayCount = Math.min(combinedLeaderboard.length, 1000);
       
       for (let i = 0; i < displayCount; i++) {
         const user = combinedLeaderboard[i];
@@ -998,7 +1043,7 @@
         
         leaderboardItem.innerHTML = `
           <div class="leaderboard-position">${i + 1}</div>
-          <div class="leaderboard-name">${user.name}</div>
+          <div class="leaderboard-name">${user.username}</div>
           <div class="leaderboard-tokens">${user.tokens} SYM</div>
         `;
         
@@ -1010,9 +1055,9 @@
         }
       }
       
-      // If user isn't in top 10, add them at the bottom with their position
-      const currentUserInTop10 = combinedLeaderboard.some((user, index) => user.isYou && index < 10);
-      if (!currentUserInTop10 && tokenBalance > 0) {
+      // If user isn't in top 1000, add them at the bottom with their position
+      const currentUserInTop1000 = combinedLeaderboard.some((user, index) => user.isYou && index < 1000);
+      if (!currentUserInTop1000 && tokenBalance > 0) {
         const userIndex = combinedLeaderboard.findIndex(user => user.isYou);
         if (userIndex !== -1) {
           const leaderboardItem = document.createElement('div');
@@ -1020,19 +1065,19 @@
           
           leaderboardItem.innerHTML = `
             <div class="leaderboard-position">${userIndex + 1}</div>
-            <div class="leaderboard-name">You</div>
+            <div class="leaderboard-name">${username}</div>
             <div class="leaderboard-tokens">${tokenBalance} SYM</div>
           `;
           
           leaderboardList.appendChild(leaderboardItem);
-          document.getElementById('user-position').textContent = userIndex + 1;
         }
       }
     }
     
     function inviteFriend() {
       const tg = window.Telegram.WebApp;
-      const userId = tg.initDataUnsafe?.user?.id || "user_" + Math.random().toString(36).substring(2, 8);
+      const tgUser = tg.initDataUnsafe?.user;
+      const userId = tgUser?.id ? tgUser.id.toString() : "user_" + Math.random().toString(36).substring(2, 8);
       const referralLink = `https://t.me/whitesymbol_bot?ref=${userId}`;
       
       // Create the invitation message
@@ -1068,36 +1113,39 @@
     function openAdminPanel() {
       // Load users from localStorage
       const savedUsers = localStorage.getItem('userProgress');
-      if (savedUsers) {
-        const userData = JSON.parse(savedUsers);
-        
-        // Create a user object for the admin panel
-        const tg = window.Telegram.WebApp;
-        const tgUser = tg.initDataUnsafe?.user;
-        const userId = tgUser?.id ? tgUser.id.toString() : "admin_demo";
-        const username = tgUser?.username || "Admin";
-        
-        const user = {
-          id: userId,
-          username: username,
-          tokens: userData.tokenBalance || 0,
-          referrals: userData.totalReferrals || 0,
-          tasksCompleted: Object.values(userData.completedTasks || {}).filter(Boolean).length,
-          joinDate: new Date().toISOString()
-        };
-        
-        // Populate user table
-        const tableBody = document.getElementById('userTableBody');
-        tableBody.innerHTML = '';
-        
+      
+      // Populate user table
+      const tableBody = document.getElementById('userTableBody');
+      tableBody.innerHTML = '';
+      
+      // Add leaderboard users first
+      leaderboardData.forEach((user, index) => {
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${user.id}</td>
+          <td>${index + 1}</td>
           <td>${user.username}</td>
           <td>${user.tokens}</td>
-          <td>${user.referrals}</td>
-          <td>${user.tasksCompleted}</td>
-          <td>${new Date(user.joinDate).toLocaleDateString()}</td>
+          <td>0</td>
+          <td>0</td>
+          <td>${new Date().toLocaleDateString()}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+      
+      // Add current user if they have tokens
+      const tg = window.Telegram.WebApp;
+      const tgUser = tg.initDataUnsafe?.user;
+      const username = tgUser?.username ? `@${tgUser.username}` : "You";
+      
+      if (tokenBalance > 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${leaderboardData.length + 1}</td>
+          <td>${username}</td>
+          <td>${tokenBalance}</td>
+          <td>${totalReferrals}</td>
+          <td>${Object.values(completedTasks).filter(Boolean).length}</td>
+          <td>${new Date().toLocaleDateString()}</td>
         `;
         tableBody.appendChild(row);
       }
@@ -1105,1012 +1153,9 @@
       document.getElementById('adminPanel').style.display = 'block';
     }
     
-    fun<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>White Symbol</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    /* Welcome Animation Styles */
-    #welcome-screen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      font-family: 'Arial', sans-serif;
-      z-index: 1000;
-    }
-
-    .welcome-line {
-      opacity: 0;
-      font-size: 2.5em;
-      font-weight: bold;
-      margin: 10px 0;
-      color: white;
-      animation: fadeInUp 1s forwards;
-    }
-
-    .welcome-line1 { animation-delay: 0.5s; }
-    .welcome-line2 { animation-delay: 2s; }
-    .welcome-line3 { animation-delay: 3.5s; }
-
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* Main App Styles */
-    #main-app {
-      display: none;
-      background: #000;
-      color: #fff;
-      min-height: 100vh;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Arial', sans-serif;
-    }
-
-    .header {
-      padding: 20px;
-      text-align: center;
-      border-bottom: 1px solid #333;
-      position: relative;
-    }
-
-    .logo {
-      font-size: 2.5rem;
-      font-weight: bold;
-      color: #fff;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-    }
-
-    .logo-highlight {
-      color: #ff0000;
-    }
-
-    .community-buttons {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 15px;
-    }
-
-    .community-btn {
-      background: #2eaddc;
-      color: #000;
-      padding: 8px 15px;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 0.9rem;
-      text-decoration: none;
-      transition: transform 0.2s;
-    }
-
-    .community-btn:hover {
-      transform: scale(1.05);
-    }
-
-    .tab-content {
-      flex: 1;
-      padding: 20px;
-      display: none;
-      padding-bottom: 70px;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .tab-bar {
-      display: flex;
-      background: #111;
-      padding: 10px 0;
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      border-top: 1px solid #333;
-    }
-
-    .tab {
-      flex: 1;
-      text-align: center;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 12px;
-      text-transform: uppercase;
-      color: #888;
-      transition: all 0.3s;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .tab.active {
-      color: #2eaddc;
-    }
-
-    .tab-icon {
-      font-size: 18px;
-    }
-
-    h2 {
-      color: #2eaddc;
-      margin-bottom: 20px;
-      font-size: 22px;
-      text-transform: uppercase;
-    }
-
-    p {
-      color: #ccc;
-      line-height: 1.6;
-      margin-bottom: 20px;
-    }
-
-    .task {
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .task-info {
-      flex: 1;
-    }
-
-    .task-title {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #2eaddc;
-    }
-
-    .task-reward {
-      color: #4CAF50;
-      font-size: 0.9rem;
-    }
-
-    .task-btn {
-      background: #2eaddc;
-      color: #000;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-      white-space: nowrap;
-    }
-
-    .task-btn:hover {
-      background: #1d8cb5;
-    }
-
-    .task-btn.completed {
-      background: #4CAF50;
-      cursor: default;
-    }
-
-    .task-btn.verify {
-      background: #FF9800;
-    }
-
-    .balance {
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .balance-amount {
-      font-size: 1.5rem;
-      color: #2eaddc;
-      font-weight: bold;
-    }
-
-    .leaderboard-item {
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-    }
-
-    .leaderboard-position {
-      font-size: 1.2rem;
-      font-weight: bold;
-      width: 30px;
-      color: #2eaddc;
-    }
-
-    .leaderboard-name {
-      flex: 1;
-      margin-left: 15px;
-    }
-
-    .leaderboard-tokens {
-      font-weight: bold;
-      color: #4CAF50;
-    }
-
-    .user-you {
-      border-left: 4px solid #ff0000;
-    }
-
-    .referral-container {
-      background: #222;
-      padding: 20px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-    }
-
-    .referral-title {
-      color: #2eaddc;
-      font-weight: bold;
-      margin-bottom: 15px;
-      font-size: 1.2rem;
-    }
-
-    .referral-code {
-      background: #333;
-      padding: 15px;
-      border-radius: 5px;
-      font-family: monospace;
-      font-size: 1.2rem;
-      text-align: center;
-      margin-bottom: 15px;
-      word-break: break-all;
-    }
-
-    .invite-btn {
-      background: #2eaddc;
-      color: #000;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-      width: 100%;
-      margin-bottom: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 1rem;
-    }
-
-    .invite-btn:hover {
-      background: #1d8cb5;
-    }
-
-    .invite-icon {
-      font-size: 1.2rem;
-    }
-
-    .referral-stats {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 15px;
-    }
-
-    .stat-box {
-      background: #333;
-      padding: 10px;
-      border-radius: 5px;
-      text-align: center;
-      flex: 1;
-      margin: 0 5px;
-    }
-
-    .stat-number {
-      font-size: 1.3rem;
-      font-weight: bold;
-      color: #2eaddc;
-    }
-
-    .stat-label {
-      font-size: 0.8rem;
-      color: #aaa;
-    }
-
-    .invited-friends {
-      margin-top: 20px;
-    }
-
-    .friend-item {
-      background: #222;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .friend-name {
-      font-weight: bold;
-    }
-
-    .friend-date {
-      color: #aaa;
-      font-size: 0.8rem;
-    }
-
-    .verification-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .verification-content {
-      background: #222;
-      padding: 20px;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 400px;
-      text-align: center;
-    }
-
-    .verification-title {
-      color: #2eaddc;
-      font-size: 1.2rem;
-      margin-bottom: 15px;
-    }
-
-    .verification-btn {
-      background: #2eaddc;
-      color: #000;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-      margin: 10px 5px;
-    }
-
-    .verification-btn.cancel {
-      background: #f44336;
-    }
-
-    /* Admin Panel Styles */
-    .admin-panel {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.9);
-      z-index: 2000;
-      overflow-y: auto;
-      padding: 20px;
-    }
-
-    .admin-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-
-    .admin-title {
-      color: #2eaddc;
-      font-size: 1.5rem;
-    }
-
-    .close-admin {
-      background: #f44336;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    .user-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .user-table th, .user-table td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #333;
-    }
-
-    .user-table th {
-      background-color: #222;
-      color: #2eaddc;
-    }
-
-    .user-table tr:hover {
-      background-color: #222;
-    }
-
-    .admin-btn {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: #ff0000;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 5px;
-      cursor: pointer;
-      z-index: 1000;
-    }
-  </style>
-</head>
-<body>
-  <!-- Welcome Screen -->
-  <div id="welcome-screen">
-    <div class="welcome-line welcome-line1">Welcome to</div>
-    <div class="welcome-line welcome-line2">White Symbol</div>
-    <div class="welcome-line welcome-line3">Mini App</div>
-  </div>
-
-  <!-- Main App -->
-  <div id="main-app">
-    <!-- Admin Button (visible only to admin) -->
-    <button class="admin-btn" id="adminBtn" style="display:none;">ADMIN</button>
-    
-    <div class="header">
-      <div class="logo">WH<span class="logo-highlight">I</span>TE SYMBOL</div>
-      <div class="community-buttons">
-        <a href="https://t.me/whitesymbo" class="community-btn" target="_blank">JOIN OUR COMMUNITY</a>
-        <a href="https://x.com/whitesymbol15?t=DmMQSl8PtoEb4AfRKYjlig&s=09" class="community-btn" target="_blank">JOIN OUR X COMMUNITY</a>
-      </div>
-    </div>
-
-    <div id="home" class="tab-content active">
-      <h2>Welcome</h2>
-      <p>WHITE SYMBOL community platform</p>
-      
-      <div class="balance">
-        <div>Your Balance</div>
-        <div class="balance-amount" id="tokenBalance">0 SYM</div>
-      </div>
-    </div>
-
-    <div id="earn" class="tab-content">
-      <h2>EARN TOKENS</h2>
-      <p>Complete tasks to earn 100 SYM tokens each</p>
-      
-      <div class="task">
-        <div class="task-info">
-          <div class="task-title">Join Telegram Community</div>
-          <div class="task-reward">Reward: 100 SYM</div>
-        </div>
-        <button class="task-btn verify" id="telegramTaskBtn">Verify</button>
-      </div>
-      
-      <div class="task">
-        <div class="task-info">
-          <div class="task-title">Follow on X (Twitter)</div>
-          <div class="task-reward">Reward: 100 SYM</div>
-        </div>
-        <button class="task-btn verify" id="twitterTaskBtn">Verify</button>
-      </div>
-      
-      <div class="task">
-        <div class="task-info">
-          <div class="task-title">Share on Social Media</div>
-          <div class="task-reward">Reward: 100 SYM</div>
-        </div>
-        <button class="task-btn verify" id="shareTaskBtn">Verify</button>
-      </div>
-      
-      <div class="task">
-        <div class="task-info">
-          <div class="task-title">Invite Friends</div>
-          <div class="task-reward">Reward: 100 SYM per friend</div>
-        </div>
-        <button class="task-btn" id="inviteTaskBtn">Invite</button>
-      </div>
-    </div>
-
-    <div id="leaderboard" class="tab-content">
-      <h2>LEADERBOARD</h2>
-      <p>Top token holders in the community</p>
-      
-      <div id="leaderboardList">
-        <div class="leaderboard-item">
-          <div class="leaderboard-position">1</div>
-          <div class="leaderboard-name">Top Holder</div>
-          <div class="leaderboard-tokens">0 SYM</div>
-        </div>
-        
-        <div class="leaderboard-item user-you">
-          <div class="leaderboard-position" id="user-position">-</div>
-          <div class="leaderboard-name">You</div>
-          <div class="leaderboard-tokens" id="user-tokens">0 SYM</div>
-        </div>
-      </div>
-    </div>
-
-    <div id="friends" class="tab-content">
-      <h2>FRIENDS</h2>
-      <p>Invite friends and earn 100 SYM tokens for each referral</p>
-      
-      <div class="referral-container">
-        <div class="referral-title">Invite Friends & Earn Tokens</div>
-        <div class="referral-code" id="referralCode">https://t.me/whitesymbol_bot?ref=USER123</div>
-        <button class="invite-btn" onclick="inviteFriend()">
-          <span class="invite-icon">📩</span> INVITE FRIEND
-        </button>
-        
-        <div class="referral-stats">
-          <div class="stat-box">
-            <div class="stat-number" id="totalReferrals">0</div>
-            <div class="stat-label">Friends Invited</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number" id="earnedFromReferrals">0</div>
-            <div class="stat-label">Earned SYM</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="invited-friends">
-        <h3>Your Invited Friends</h3>
-        <div id="friendsList">
-          <div class="friend-item">
-            <div class="friend-info">
-              <div class="friend-name">No friends invited yet</div>
-              <div class="friend-date">Invite friends to earn rewards</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="tab-bar">
-      <div class="tab active" data-tab="home">
-        <div class="tab-icon">🏠</div>
-        <div>HOME</div>
-      </div>
-      <div class="tab" data-tab="earn">
-        <div class="tab-icon">💰</div>
-        <div>EARN</div>
-      </div>
-      <div class="tab" data-tab="leaderboard">
-        <div class="tab-icon">🏆</div>
-        <div>TOP</div>
-      </div>
-      <div class="tab" data-tab="friends">
-        <div class="tab-icon">👥</div>
-        <div>FRIENDS</div>
-      </div>
-    </div>
-
-    <!-- Verification Modal -->
-    <div class="verification-modal" id="verificationModal">
-      <div class="verification-content">
-        <div class="verification-title" id="verificationTitle">Verify Telegram Join</div>
-        <p id="verificationText">Please join our Telegram channel first, then click Verify to confirm.</p>
-        <div>
-          <button class="verification-btn" id="verifyActionBtn">Verify</button>
-          <button class="verification-btn cancel" onclick="closeVerificationModal()">Cancel</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Admin Panel -->
-  <div class="admin-panel" id="adminPanel">
-    <div class="admin-header">
-      <h2 class="admin-title">Admin Dashboard - User Management</h2>
-      <button class="close-admin" onclick="closeAdminPanel()">Close</button>
-    </div>
-    
-    <table class="user-table">
-      <thead>
-        <tr>
-          <th>User ID</th>
-          <th>Username</th>
-          <th>Tokens</th>
-          <th>Referrals</th>
-          <th>Tasks Completed</th>
-          <th>Join Date</th>
-        </tr>
-      </thead>
-      <tbody id="userTableBody">
-        <!-- Users will be added here dynamically -->
-      </tbody>
-    </table>
-  </div>
-
-  <script>
-    // Global variables
-    let tokenBalance = 0;
-    let totalReferrals = 0;
-    let earnedFromReferrals = 0;
-    let currentVerificationTask = null;
-    let users = [];
-    let completedTasks = {
-      telegram: false,
-      twitter: false,
-      share: false,
-      invite: false
-    };
-    let taskVerification = {
-      telegram: false,
-      twitter: false,
-      share: false
-    };
-    
-    const SOCIAL_LINKS = {
-      telegram: "https://t.me/whitesymbo",
-      twitter: "https://x.com/whitesymbol15?t=DmMQSl8PtoEb4AfRKYjlig&s=09",
-      share: "https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=USER123&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!"
-    };
-    
-    const leaderboardData = [
-      { name: "Top Holder", tokens: 500 },
-      { name: "Second Holder", tokens: 300 },
-      { name: "Third Holder", tokens: 200 }
-    ];
-
-    // First show welcome animation, then main app
-    document.addEventListener('DOMContentLoaded', function() {
-      const tg = window.Telegram.WebApp;
-      tg.expand();
-      
-      // After welcome animation completes (4.5 seconds), show main app
-      setTimeout(function() {
-        document.getElementById('welcome-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        initializeApp();
-      }, 4500);
-    });
-
-    function initializeApp() {
-      const tg = window.Telegram.WebApp;
-      
-      // Check if current user is admin (replace with your Telegram user ID)
-      const ADMIN_USER_ID = "YOUR_TELEGRAM_USER_ID"; // Replace this with your actual Telegram user ID
-      const tgUser = tg.initDataUnsafe?.user;
-      const isAdmin = tgUser?.id === ADMIN_USER_ID;
-      
-      if (isAdmin) {
-        document.getElementById('adminBtn').style.display = 'block';
-        document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
-      }
-      
-      // Generate user ID for referral link
-      const userId = tgUser?.id ? tgUser.id.toString() : "user_" + Math.random().toString(36).substring(2, 8);
-      document.getElementById('referralCode').textContent = `https://t.me/whitesymbol_bot?ref=${userId}`;
-      SOCIAL_LINKS.share = `https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=${userId}&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!`;
-
-      // Load user data from localStorage
-      loadUserData();
-      
-      // Initialize task buttons
-      document.getElementById('telegramTaskBtn').addEventListener('click', function() {
-        startTaskVerification('telegram');
-      });
-      
-      document.getElementById('twitterTaskBtn').addEventListener('click', function() {
-        startTaskVerification('twitter');
-      });
-      
-      document.getElementById('shareTaskBtn').addEventListener('click', function() {
-        startTaskVerification('share');
-      });
-      
-      document.getElementById('inviteTaskBtn').addEventListener('click', function() {
-        inviteFriend();
-      });
-      
-      // Initialize tab switching
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-          const tabName = this.getAttribute('data-tab');
-          openTab(tabName);
-        });
-      });
-      
-      // Update UI with loaded data
-      updateTokenBalance();
-      updateLeaderboard();
-      updateTaskButtons();
-      
-      // Check for referral parameter
-      checkReferral();
-    }
-    
-    function loadUserData() {
-      const savedData = localStorage.getItem('userProgress');
-      if (savedData) {
-        const data = JSON.parse(savedData);
-        tokenBalance = data.tokenBalance || 0;
-        totalReferrals = data.totalReferrals || 0;
-        earnedFromReferrals = data.earnedFromReferrals || 0;
-        completedTasks = data.completedTasks || {
-          telegram: false,
-          twitter: false,
-          share: false,
-          invite: false
-        };
-        taskVerification = data.taskVerification || {
-          telegram: false,
-          twitter: false,
-          share: false
-        };
-      }
-    }
-    
-    function saveUserData() {
-      const data = {
-        tokenBalance,
-        totalReferrals,
-        earnedFromReferrals,
-        completedTasks,
-        taskVerification
-      };
-      localStorage.setItem('userProgress', JSON.stringify(data));
-    }
-
-    function openTab(tabName) {
-      // Hide all tab contents
-      document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      
-      // Remove active class from all tabs
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      
-      // Show the selected tab content
-      document.getElementById(tabName).classList.add('active');
-      
-      // Find and activate the clicked tab
-      const clickedTab = document.querySelector(`.tab[data-tab="${tabName}"]`);
-      if (clickedTab) {
-        clickedTab.classList.add('active');
-      }
-      
-      // Refresh leaderboard when opening that tab
-      if (tabName === 'leaderboard') {
-        updateLeaderboard();
-      }
-    }
-    
-    function startTaskVerification(taskType) {
-      // If task is already completed, do nothing
-      if (completedTasks[taskType]) {
-        alert("You've already completed this task and earned your tokens!");
-        return;
-      }
-      
-      // If task needs verification but already verified, complete it
-      if (taskVerification[taskType] && ['telegram', 'twitter', 'share'].includes(taskType)) {
-        completeTask(taskType);
-        return;
-      }
-      
-      currentVerificationTask = taskType;
-      const modal = document.getElementById('verificationModal');
-      const title = document.getElementById('verificationTitle');
-      const text = document.getElementById('verificationText');
-      const actionBtn = document.getElementById('verifyActionBtn');
-      
-      // Set modal content based on task type
-      switch(taskType) {
-        case 'telegram':
-          title.textContent = "Verify Telegram Join";
-          text.textContent = "Please join our Telegram channel first, then click Verify to confirm.";
-          actionBtn.textContent = "Open Telegram";
-          actionBtn.onclick = function() {
-            window.open(SOCIAL_LINKS.telegram, '_blank');
-            // In a real app, you would have backend verification here
-            setTimeout(() => {
-              taskVerification.telegram = true;
-              completeTaskVerification();
-            }, 2000); // Simulate verification delay
-          };
-          break;
-          
-        case 'twitter':
-          title.textContent = "Verify Twitter Follow";
-          text.textContent = "Please follow us on Twitter first, then click Verify to confirm.";
-          actionBtn.textContent = "Open Twitter";
-          actionBtn.onclick = function() {
-            window.open(SOCIAL_LINKS.twitter, '_blank');
-            // In a real app, you would have backend verification here
-            setTimeout(() => {
-              taskVerification.twitter = true;
-              completeTaskVerification();
-            }, 2000); // Simulate verification delay
-          };
-          break;
-          
-        case 'share':
-          title.textContent = "Verify Social Share";
-          text.textContent = "Please share our community on your social media, then click Verify to confirm.";
-          actionBtn.textContent = "Share Now";
-          actionBtn.onclick = function() {
-            window.open(SOCIAL_LINKS.share, '_blank');
-            // In a real app, you would have backend verification here
-            setTimeout(() => {
-              taskVerification.share = true;
-              completeTaskVerification();
-            }, 2000); // Simulate verification delay
-          };
-          break;
-      }
-      
-      modal.style.display = 'flex';
-    }
-    
-    function completeTaskVerification() {
-      if (!currentVerificationTask) return;
-      
-      closeVerificationModal();
-      completeTask(currentVerificationTask);
-    }
-    
-    function closeVerificationModal() {
-      document.getElementById('verificationModal').style.display = 'none';
-      currentVerificationTask = null;
-    }
-    
-    function completeTask(taskType) {
-      if (completedTasks[taskType]) {
-        alert("You've already completed this task and earned your tokens!");
-        return;
-      }
-      
-      // For tasks that need verification, check if verified
-      if (['telegram', 'twitter', 'share'].includes(taskType)) {
-        if (!taskVerification[taskType]) {
-          alert("Please verify the task first by clicking Verify");
-          return;
-        }
-      }
-      
-      // Mark as completed
-      completedTasks[taskType] = true;
-      
-      // Add tokens (these will be permanent and never removed)
-      tokenBalance += 100;
-      if (taskType === 'invite') {
-        earnedFromReferrals += 100;
-        totalReferrals += 1;
-      }
-      
-      // Update UI
-      updateTokenBalance();
-      updateLeaderboard();
-      updateTaskButtons();
-      saveUserData();
-      
-      alert(`Task completed! You earned 100 SYM tokens.\nTotal balance: ${tokenBalance} SYM`);
-    }
-    
-    function updateTaskButtons() {
-      // Telegram task
-      const telegramBtn = document.getElementById('telegramTaskBtn');
-      if (completedTasks.telegram) {
-        telegramBtn.textContent = "Completed";
-        telegramBtn.classList.add('completed');
-        telegramBtn.classList.remove('verify');
-        telegramBtn.disabled = true;
-        telegramBtn.onclick = null;
-      } else if (taskVerification.telegram) {
-        telegramBtn.textContent = "Complete";
-        telegramBtn.classList.remove('verify');
-        telegramBtn.onclick = function() { completeTask('telegram'); };
-      }
-      
-      // Twitter task
-      const twitterBtn = document.getElementById('twitterTaskBtn');
-      if (completedTasks.twitter) {
-        twitterBtn.textContent = "Completed";
-        twitterBtn.classList.add('completed');
-        twitterBtn.classList.remove('verify');
-        twitterBtn.disabled = true;
-        twitterBtn.onclick = null;
-      } else if (taskVerification.twitter) {
-        twitterBtn.textContent = "Complete";
-        twitterBtn.classList.remove('verify');
-        twitterBtn.onclick = function() { completeTask('twitter'); };
-      }
-      
-      // Share task
-      const shareBtn = document.getElementById('shareTaskBtn');
-      if (completedTasks.share) {
-        shareBtn.textContent = "Completed";
-        shareBtn.classList.add('completed');
-        shareBtn.classList.remove('verify');
-        shareBtn.disabled = true;
-        shareBtn.onclick = null;
-      } else if (taskVerification.share) {
-        shareBtn.textContent = "Complete";
-        shareBtn.classList.remove('verify');
-        shareBtn.onclick = function() { completeTask('share'); };
-      }
-      
-      // Invite task
-      const inviteBtn = document.getElementById('inviteTaskBtn');
-      if (completedTasks.invite) {
-        inviteBtn.textContent = "Completed";
-        inviteBtn.classList.add('completed');
-        inviteBtn.disabled = true;
-        inviteBtn.onclick = null;
-      }
-    }
-    
-    function updateTokenBalance() {
-      document.getElementById('tokenBalance').textContent = `${tokenBalance} SYM`;
-      document.getElementById('user-tokens').textContent = `${tokenBalance} SYM`;
-      document.getElementById('earnedFromReferrals').textContent = earnedFromReferrals;
-      document.getElementById('totalReferrals').textContent = totalReferrals;
-    }
-    
-    function updateLeaderboard() {
-      // Create a combined leaderboard with all users plus the current user
-      let combinedLeaderboard = [...leaderboardData];
-      
-      // Add current user to the leaderboard if they have tokens
-      if (tokenBalance > 0) {
-        combinedLeaderboard.push({ name: "You", tokens: tokenBalance, isYou: true });
-      }
-      
-      // Sort by tokens descending
-      combinedLeaderboard.sort((a, b) => b.tokens - a.tokens);
-      
-      // Update the leaderboard display
-      const leaderboardList = document.getElementById('leaderboardList');
-      leaderboardList.innerHTML = '';
-      
-      // Show top 10 or all if less than 10
-      const displayCount = Math.min(combinedLeaderboard.length, 10);
-      
-      for (let i = 0; i < displayCount; i++) {
-        const user = combinedLeaderboard[i];
-        const leaderboardItem = document.createElement('div');
-        leaderboardItem.className = `leaderboard-item ${user.isYou ? 'user-you' : ''}`;
-        
-        leaderboardItem.innerHTML = `
-          <div class="leaderboard-position">${i + 1}</div>
-          <div class="leaderboard-name">${user.name}</div>
-          <div class="leaderboard-tokens">${user.tokens} SYM</div>
-        `;
-        
-        leaderboardList.appendChild(leaderboardItem);
-        
-        // Update user position if this is the current user
-        if (user.isYou) {
-          document.getElementById('user-position').textContent = i + 1;
+    function closeAdminPanel() {
+      document.getElementById('adminPanel').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
