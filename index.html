@@ -556,8 +556,7 @@
       
       <div class="referral-container">
         <div class="referral-title">Invite Friends & Earn Tokens</div>
-        <div class="referral-code" id="referralCode" style="display:none;">https://t.me/whitesymbol_bot?ref=USER123</div>
-        
+        <div class="referral-code" id="referralCode">https://t.me/whitesymbol_bot?ref=USER123</div>
         <button class="invite-btn" onclick="inviteFriend()">
           <span class="invite-icon">📩</span> INVITE FRIEND
         </button>
@@ -700,8 +699,8 @@
         document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
       }
       
-      // Generate random user ID for referral link
-      const userId = tgUser?.id ? tgUser.id.toString() : "demo_" + Math.random().toString(36).substring(2, 8);
+      // Generate user ID for referral link
+      const userId = tgUser?.id ? tgUser.id.toString() : "user_" + Math.random().toString(36).substring(2, 8);
       document.getElementById('referralCode').textContent = `https://t.me/whitesymbol_bot?ref=${userId}`;
       SOCIAL_LINKS.share = `https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=${userId}&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!`;
 
@@ -737,6 +736,9 @@
       updateTokenBalance();
       updateLeaderboard();
       updateTaskButtons();
+      
+      // Check for referral parameter
+      checkReferral();
     }
     
     function loadUserData() {
@@ -1021,78 +1023,33 @@
     
     function inviteFriend() {
       const tg = window.Telegram.WebApp;
-      const userId = tg.initDataUnsafe?.user?.id || "demo_" + Math.random().toString(36).substring(2, 8);
+      const userId = tg.initDataUnsafe?.user?.id || "user_" + Math.random().toString(36).substring(2, 8);
       const referralLink = `https://t.me/whitesymbol_bot?ref=${userId}`;
       
       // Create the invitation message
       const message = `Join WHITE SYMBOL and earn tokens with me! 🚀\n\n` +
-                      `Use my referral link to get started:\n${referralLink}\n\n` +
-                      `Let's build the community together! 💎`;
+                     `Use my referral link to get started:\n${referralLink}\n\n` +
+                     `Let's build the community together! 💎`;
       
       // Open Telegram share dialog
       if (tg.platform !== "unknown") {
-          // Running in Telegram app
           tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`);
       } else {
-          // Running outside Telegram (for testing)
           window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`, '_blank');
       }
-      
-      // For demo purposes, simulate a friend joining after 2 seconds
-      setTimeout(() => {
-          if (confirm("Did your friend join through your invitation?")) {
-              addRandomFriend();
-          }
-      }, 2000);
     }
 
-    function addRandomFriend() {
-      const names = ["Rahim", "Karim", "Sadia", "Tania", "Fahim", "Nadia"];
-      const randomName = names[Math.floor(Math.random() * names.length)];
-      addFriend(randomName);
+    function checkReferral() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref');
+      
+      if (refParam) {
+        // In a real app, you would verify this with your backend
+        // For now, we'll just show a welcome message
+        alert("Welcome! You joined through a referral link.");
+      }
     }
 
-    function addFriend(name) {
-      totalReferrals++;
-      earnedFromReferrals += 100;
-      tokenBalance += 100;
-      
-      document.getElementById('totalReferrals').textContent = totalReferrals;
-      document.getElementById('earnedFromReferrals').textContent = earnedFromReferrals;
-      updateTokenBalance();
-      
-      // Add to friends list
-      const friendsList = document.getElementById('friendsList');
-      if (friendsList.firstChild?.querySelector('.friend-name')?.textContent === "No friends invited yet") {
-          friendsList.innerHTML = '';
-      }
-      
-      const friendItem = document.createElement('div');
-      friendItem.className = 'friend-item';
-      friendItem.innerHTML = `
-          <div class="friend-info">
-              <div class="friend-name">${name}</div>
-              <div class="friend-date">Joined just now</div>
-          </div>
-          <div class="friend-reward">+100 SYM</div>
-      `;
-      friendsList.prepend(friendItem);
-      
-      // Update leaderboard
-      updateLeaderboard();
-      
-      // Mark invite task as completed if this is first friend
-      if (!completedTasks.invite) {
-          completedTasks.invite = true;
-          updateTaskButtons();
-      }
-      
-      saveUserData();
-      
-      // Show congratulation message
-      alert(`Congratulations! ${name} joined using your referral link.\nYou earned 100 SYM tokens!`);
-    }
-    
     // Admin panel functions
     function openAdminPanel() {
       // Load users from localStorage
@@ -1137,22 +1094,6 @@
     function closeAdminPanel() {
       document.getElementById('adminPanel').style.display = 'none';
     }
-    
-    // Demo button to simulate friend joining (remove in production)
-    const demoBtn = document.createElement('button');
-    demoBtn.textContent = "DEMO: Simulate Friend Join";
-    demoBtn.style.position = 'fixed';
-    demoBtn.style.top = '60px';
-    demoBtn.style.right = '10px';
-    demoBtn.style.zIndex = '1000';
-    demoBtn.style.padding = '5px 10px';
-    demoBtn.style.background = '#ff0000';
-    demoBtn.style.color = 'white';
-    demoBtn.style.border = 'none';
-    demoBtn.style.borderRadius = '5px';
-    demoBtn.style.cursor = 'pointer';
-    demoBtn.onclick = addRandomFriend;
-    document.body.appendChild(demoBtn);
   </script>
 </body>
 </html>
