@@ -202,6 +202,7 @@
 
     .task-btn.completed {
       background: #4CAF50;
+      cursor: default;
     }
 
     .task-btn.verify {
@@ -802,7 +803,7 @@
     function startTaskVerification(taskType) {
       // If task is already completed, do nothing
       if (completedTasks[taskType]) {
-        alert("You've already completed this task!");
+        alert("You've already completed this task and earned your tokens!");
         return;
       }
       
@@ -880,7 +881,7 @@
     
     function completeTask(taskType) {
       if (completedTasks[taskType]) {
-        alert("You've already completed this task!");
+        alert("You've already completed this task and earned your tokens!");
         return;
       }
       
@@ -895,10 +896,11 @@
       // Mark as completed
       completedTasks[taskType] = true;
       
-      // Add tokens
+      // Add tokens (these will be permanent and never removed)
       tokenBalance += 100;
       if (taskType === 'invite') {
         earnedFromReferrals += 100;
+        totalReferrals += 1;
       }
       
       // Update UI
@@ -916,7 +918,9 @@
       if (completedTasks.telegram) {
         telegramBtn.textContent = "Completed";
         telegramBtn.classList.add('completed');
+        telegramBtn.classList.remove('verify');
         telegramBtn.disabled = true;
+        telegramBtn.onclick = null;
       } else if (taskVerification.telegram) {
         telegramBtn.textContent = "Complete";
         telegramBtn.classList.remove('verify');
@@ -928,7 +932,9 @@
       if (completedTasks.twitter) {
         twitterBtn.textContent = "Completed";
         twitterBtn.classList.add('completed');
+        twitterBtn.classList.remove('verify');
         twitterBtn.disabled = true;
+        twitterBtn.onclick = null;
       } else if (taskVerification.twitter) {
         twitterBtn.textContent = "Complete";
         twitterBtn.classList.remove('verify');
@@ -940,7 +946,9 @@
       if (completedTasks.share) {
         shareBtn.textContent = "Completed";
         shareBtn.classList.add('completed');
+        shareBtn.classList.remove('verify');
         shareBtn.disabled = true;
+        shareBtn.onclick = null;
       } else if (taskVerification.share) {
         shareBtn.textContent = "Complete";
         shareBtn.classList.remove('verify');
@@ -953,6 +961,7 @@
         inviteBtn.textContent = "Completed";
         inviteBtn.classList.add('completed');
         inviteBtn.disabled = true;
+        inviteBtn.onclick = null;
       }
     }
     
@@ -1036,6 +1045,11 @@
           tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`);
       } else {
           window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`, '_blank');
+      }
+      
+      // Mark invite task as completed (only once)
+      if (!completedTasks.invite) {
+        completeTask('invite');
       }
     }
 
