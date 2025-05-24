@@ -9,19 +9,11 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <style>
-    body {
-      margin: 0;
-      background: black;
-      color: white;
-      font-family: 'Arial', sans-serif;
-    }
-
+    body { margin: 0; background: black; color: white; font-family: 'Arial', sans-serif; }
     .page { display: none; padding: 20px; }
     .active { display: block; }
 
-    .home-header {
-      text-align: center; margin-top: 30px;
-    }
+    .home-header { text-align: center; margin-top: 30px; }
     .home-header h1 {
       font-size: 36px; font-weight: bold;
       background: linear-gradient(to right, #fff, #aaa);
@@ -32,18 +24,36 @@
 
     .counter { text-align: center; font-size: 28px; margin: 10px 0 30px; }
 
-    .box, .invite-info, .invite-list, .leaderboard-top {
-      background: #1a1a1a; border-radius: 20px;
-      padding: 20px; margin: 15px auto;
-      max-width: 330px; text-align: center;
-      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+    .task-box {
+      background: #111;
+      border: 2px solid white;
+      border-radius: 14px;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 350px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
     }
 
-    .task-box {
-      background: #111; border-radius: 10px;
-      padding: 12px; margin: 15px auto;
-      max-width: 330px; display: flex;
-      justify-content: space-between; align-items: center;
+    .task-box button {
+      background: white;
+      color: black;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: bold;
+    }
+
+    .box, .invite-info, .invite-list, .leaderboard-top, .leaderboard-entry {
+      background: #1a1a1a;
+      border-radius: 20px;
+      padding: 20px;
+      margin: 15px auto;
+      max-width: 330px;
+      text-align: center;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
     }
 
     .bottom-nav {
@@ -58,13 +68,22 @@
 </head>
 <body>
 
+<!-- HOME TAB -->
 <div id="homePage" class="page active">
   <div class="home-header"><h1>WHITE SYMBOL</h1></div>
   <div class="counter" id="tokenCount">0 sym</div>
-  <div class="box"><a href="https://t.me/whitesymbo" target="_blank">Join Telegram</a></div>
-  <div class="box"><a href="https://x.com/whitesymbol15" target="_blank">Join X</a></div>
+
+  <div class="task-box">
+    <span>Join our Telegram community</span>
+    <a href="https://t.me/whitesymbo" target="_blank"><button>Join</button></a>
+  </div>
+  <div class="task-box">
+    <span>Join our X community</span>
+    <a href="https://x.com/whitesymbol15" target="_blank"><button>Join</button></a>
+  </div>
 </div>
 
+<!-- EARN TAB -->
 <div id="earnPage" class="page">
   <div class="task-box" id="task-telegram">
     <span>Follow Telegram<br><small>Reward: 100 sym</small></span>
@@ -76,14 +95,21 @@
   </div>
 </div>
 
+<!-- LEADERBOARD TAB -->
 <div id="leaderboardPage" class="page">
-  <div class="leaderboard-top" id="leaderboardTop">Loading...</div>
+  <div class="leaderboard-top" id="leaderboardTop">Loading leaderboard...</div>
+  <div id="leaderboardList"></div>
 </div>
 
+<!-- FRIENDS TAB -->
 <div id="friendsPage" class="page">
   <div class="invite-info">
-    <div><strong>Invite Friends:</strong> <span id="inviteCount">0</span></div>
-    <div><strong>Earned Tokens:</strong> <span id="inviteTokens">0</span> sym</div><br>
+    <div class="box">
+      <strong>Invite Friends:</strong> <span id="inviteCount">0</span>
+    </div>
+    <div class="box">
+      <strong>Earned Tokens:</strong> <span id="inviteTokens">0</span> sym
+    </div>
     <a href="https://t.me/whitesymbol_bot" target="_blank">
       <button style="padding:10px 16px; font-weight:bold;">Invite Friends</button>
     </a>
@@ -91,6 +117,7 @@
   <div class="invite-list" id="inviteList">No invites yet</div>
 </div>
 
+<!-- NAVIGATION -->
 <div class="bottom-nav">
   <a onclick="switchTab('homePage')"><i class="fas fa-home"></i>HOME</a>
   <a onclick="switchTab('earnPage')"><i class="fas fa-coins"></i>EARN</a>
@@ -111,6 +138,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const userId = Telegram.WebApp.initDataUnsafe?.user?.id || 'guest_' + Math.random();
+  const username = Telegram.WebApp.initDataUnsafe?.user?.username || 'Guest';
 
   let token = 0;
   let inviteCount = 0;
@@ -123,7 +151,7 @@
       inviteCount = data.inviteCount || 0;
       updateTokenDisplay();
     } else {
-      await db.collection("users").doc(userId).set({ token: 0, inviteCount: 0 });
+      await db.collection("users").doc(userId).set({ token: 0, inviteCount: 0, username });
     }
   }
 
@@ -135,7 +163,7 @@
 
   async function verifyTask(id, link) {
     window.open(link, '_blank');
-    await updateToken(100); // Token update in Firebase
+    await updateToken(100);
     const taskElement = document.getElementById('task-' + id);
     if (taskElement) {
       taskElement.innerHTML = `<span>Completed!</span>`;
@@ -155,12 +183,28 @@
     document.getElementById('tokenCount').textContent = token + ' sym';
     document.getElementById('inviteTokens').textContent = inviteCount * 100;
     document.getElementById('inviteCount').textContent = inviteCount;
-    document.getElementById("leaderboardTop").innerHTML = `<strong>Your Token:</strong> ${token} sym`;
   }
 
   function switchTab(tabId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
+    if (tabId === 'leaderboardPage') loadLeaderboard();
+  }
+
+  async function loadLeaderboard() {
+    const snapshot = await db.collection("users").orderBy("token", "desc").limit(100).get();
+    const leaderboard = document.getElementById("leaderboardList");
+    leaderboard.innerHTML = "";
+    let rank = 1;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const uname = data.username || 'Anonymous';
+      const score = data.token || 0;
+      leaderboard.innerHTML += `<div class="leaderboard-entry">#${rank} — @${uname} : ${score} sym</div>`;
+      rank++;
+    });
+
+    document.getElementById("leaderboardTop").innerHTML = `<strong>Your Token:</strong> ${token} sym`;
   }
 
   document.getElementById('friendsPage').addEventListener('click', function(e) {
