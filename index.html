@@ -1,259 +1,173 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>White Symbol Mini App</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
       background: black;
       color: white;
-    }.page {
-  display: none;
-  padding: 20px;
-}
+      font-family: 'Arial', sans-serif;
+    }
 
-.active {
-  display: block;
-}
+    .page { display: none; padding: 20px; }
+    .active { display: block; }
 
-/* Splash Screen */
-.splash {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: black;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  z-index: 9999;
-}
+    .home-header {
+      text-align: center; margin-top: 30px;
+    }
+    .home-header h1 {
+      font-size: 36px; font-weight: bold;
+      background: linear-gradient(to right, #fff, #aaa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
 
-.splash-text {
-  font-size: 30px;
-  font-weight: bold;
-  letter-spacing: 3px;
-  opacity: 0;
-  margin: 10px 0;
-  animation: fadeInText 1s ease forwards;
-}
+    .counter { text-align: center; font-size: 28px; margin: 10px 0 30px; }
 
-.splash-text:nth-child(2) {
-  animation-delay: 1.2s;
-}
+    .box, .invite-info, .invite-list, .leaderboard-top {
+      background: #1a1a1a; border-radius: 20px;
+      padding: 20px; margin: 15px auto;
+      max-width: 330px; text-align: center;
+      box-shadow: 0 0 10px rgba(255,255,255,0.1);
+    }
 
-.splash-text:nth-child(3) {
-  animation-delay: 2.4s;
-}
+    .task-box {
+      background: #111; border-radius: 10px;
+      padding: 12px; margin: 15px auto;
+      max-width: 330px; display: flex;
+      justify-content: space-between; align-items: center;
+    }
 
-@keyframes fadeInText {
-  to {
-    opacity: 1;
-  }
-}
-
-.splash.hide {
-  animation: fadeOutSplash 1s ease forwards;
-}
-
-@keyframes fadeOutSplash {
-  to {
-    opacity: 0;
-    visibility: hidden;
-  }
-}
-
-.home-header {
-  text-align: center;
-  margin-top: 20px;
-}
-
-.home-header h1 {
-  font-size: 36px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  background: linear-gradient(to right, #fff, #aaa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.counter {
-  text-align: center;
-  font-size: 28px;
-  margin: 10px 0 30px;
-}
-
-.box {
-  background: #1a1a1a;
-  border-radius: 12px;
-  padding: 18px;
-  margin: 15px auto;
-  max-width: 330px;
-  text-align: center;
-  box-shadow: 0 0 10px rgba(255,255,255,0.1);
-}
-
-.box a {
-  text-decoration: none;
-  color: white;
-  font-size: 16px;
-  display: inline-block;
-  font-weight: bold;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  background: #111;
-  padding: 10px 0;
-  border-top: 1px solid #333;
-}
-
-.bottom-nav a {
-  color: white;
-  text-align: center;
-  font-size: 12px;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.bottom-nav i {
-  display: block;
-  font-size: 20px;
-  margin-bottom: 5px;
-}
-
-.task-box {
-  border: 1px solid #fff;
-  border-radius: 8px;
-  padding: 10px 15px;
-  margin: 15px auto;
-  max-width: 330px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.task-box span {
-  font-size: 15px;
-  font-weight: bold;
-}
-
-.task-box small {
-  display: block;
-  font-size: 12px;
-  font-weight: normal;
-  color: #ccc;
-}
-
-.task-box button {
-  background: white;
-  color: black;
-  font-weight: bold;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.tasks-header {
-  text-align: center;
-  font-size: 16px;
-  font-weight: bold;
-  margin-top: 10px;
-}
-
+    .bottom-nav {
+      position: fixed; bottom: 0; width: 100%;
+      display: flex; justify-content: space-around;
+      background: #111; padding: 10px 0;
+      border-top: 1px solid #333;
+    }
+    .bottom-nav a { color: white; font-size: 12px; text-decoration: none; text-align: center; }
+    .bottom-nav i { display: block; font-size: 20px; margin-bottom: 4px; }
   </style>
 </head>
 <body>
-  <div id="splash" class="splash">
-    <div class="splash-text">Welcome to</div>
-    <div class="splash-text">White Symbol</div>
-    <div class="splash-text">Mini App</div>
-  </div>  <div id="homePage" class="page active">
-    <div class="home-header">
-      <h1>WHITE SYMBOL</h1>
-    </div>
-    <div class="counter" id="tokenCount">0 sym</div><div style="margin-top: 40px;">
-  <div class="box">
-    <a href="https://t.me/whitesymbo" target="_blank">Join our Telegram community</a>
+
+<div id="homePage" class="page active">
+  <div class="home-header"><h1>WHITE SYMBOL</h1></div>
+  <div class="counter" id="tokenCount">0 sym</div>
+  <div class="box"><a href="https://t.me/whitesymbo" target="_blank">Join Telegram</a></div>
+  <div class="box"><a href="https://x.com/whitesymbol15" target="_blank">Join X</a></div>
+</div>
+
+<div id="earnPage" class="page">
+  <div class="task-box" id="task-telegram">
+    <span>Follow Telegram<br><small>Reward: 100 sym</small></span>
+    <button onclick="verifyTask('telegram', 'https://t.me/whitesymbo')">Verify</button>
   </div>
-  <div class="box">
-    <a href="https://x.com/whitesymbol15" target="_blank">Join our X community</a>
+  <div class="task-box" id="task-x">
+    <span>Follow on X<br><small>Reward: 100 sym</small></span>
+    <button onclick="verifyTask('x', 'https://x.com/whitesymbol15')">Verify</button>
   </div>
 </div>
 
-  </div>  <div id="earnPage" class="page">
-    <div class="tasks-header">All tasks are limited</div>
-    <div class="task-box" id="task-telegram">
-      <span>Follow our Telegram<br><small>Reward: 100 sym</small></span>
-      <button onclick="verifyTask('telegram', 'https://t.me/whitesymbo')">Verify</button>
-    </div>
-    <div class="task-box" id="task-x">
-      <span>Follow us on X<br><small>Reward: 100 sym</small></span>
-      <button onclick="verifyTask('x', 'https://x.com/whitesymbol15')">Verify</button>
-    </div>
-  </div>  <div id="leaderboardPage" class="page">
-    <div class="tasks-header">Top 100 Leaderboard</div>
-    <div id="leaderboardContainer"></div>
-  </div>  <div id="friendsPage" class="page">
-    <div class="tasks-header">Your referral takes you closer to your airdrop</div>
-    <div class="box">
-      <a href="https://t.me/whitesymbol_bot" target="_blank">Invite Friends</a>
-    </div>
-    <div class="box">You have invited: 0 friends</div>
-    <div class="box">Tokens earned: 0 sym</div>
-  </div>  <div class="bottom-nav">
-    <a onclick="switchTab('homePage')"><i class="fas fa-home"></i>HOME</a>
-    <a onclick="switchTab('earnPage')"><i class="fas fa-coins"></i>EARN</a>
-    <a onclick="switchTab('leaderboardPage')"><i class="fas fa-chart-bar"></i>LEADERBOARD</a>
-    <a onclick="switchTab('friendsPage')"><i class="fas fa-user-friends"></i>FRIENDS</a>
-  </div>  <script>
-    let token = 0;
+<div id="leaderboardPage" class="page">
+  <div class="leaderboard-top" id="leaderboardTop">Loading...</div>
+</div>
 
-    function updateTokenDisplay() {
-      document.getElementById('tokenCount').textContent = token + ' sym';
-    }
+<div id="friendsPage" class="page">
+  <div class="invite-info">
+    <div><strong>Invite Friends:</strong> <span id="inviteCount">0</span></div>
+    <div><strong>Earned Tokens:</strong> <span id="inviteTokens">0</span> sym</div><br>
+    <a href="https://t.me/whitesymbol_bot" target="_blank">
+      <button style="padding:10px 16px; font-weight:bold;">Invite Friends</button>
+    </a>
+  </div>
+  <div class="invite-list" id="inviteList">No invites yet</div>
+</div>
 
-    function verifyTask(id, link) {
-      window.open(link, '_blank');
-      token += 100;
+<div class="bottom-nav">
+  <a onclick="switchTab('homePage')"><i class="fas fa-home"></i>HOME</a>
+  <a onclick="switchTab('earnPage')"><i class="fas fa-coins"></i>EARN</a>
+  <a onclick="switchTab('leaderboardPage')"><i class="fas fa-chart-bar"></i>LEADERBOARD</a>
+  <a onclick="switchTab('friendsPage')"><i class="fas fa-user-friends"></i>FRIENDS</a>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyB-B22adLRz_qX0Ysc7NGElRTtg-bJQK-I4",
+    authDomain: "white-symbol-3e566.firebaseapp.com",
+    projectId: "white-symbol-3e566",
+    storageBucket: "white-symbol-3e566.appspot.com",
+    messagingSenderId: "754313092742",
+    appId: "1:754313092742:web:b85f5ae820d162eb6c2bb7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const userId = Telegram.WebApp.initDataUnsafe?.user?.id || 'guest_' + Math.random();
+
+  let token = 0;
+  let inviteCount = 0;
+
+  async function loadUserData() {
+    const doc = await db.collection("users").doc(userId).get();
+    if (doc.exists) {
+      const data = doc.data();
+      token = data.token || 0;
+      inviteCount = data.inviteCount || 0;
       updateTokenDisplay();
-      const task = document.getElementById('task-' + id);
-      if (task) {
-        task.remove();
-      }
+    } else {
+      await db.collection("users").doc(userId).set({ token: 0, inviteCount: 0 });
     }
+  }
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-    }
-
-    function loadLeaderboard() {
-      const container = document.getElementById('leaderboardContainer');
-      const dummyUsers = Array.from({ length: 10 }, (_, i) => ({ username: `user${i+1}`, tokens: 1000 - i * 10 }));
-
-      dummyUsers.forEach((user, i) => {
-        const entry = document.createElement('div');
-        entry.className = 'box';
-        entry.innerHTML = `<strong>#${i + 1}</strong> @${user.username}<br>${user.tokens} sym`;
-        container.appendChild(entry);
-      });
-    }
-
-    setTimeout(() => {
-      document.getElementById('splash').classList.add('hide');
-    }, 4000);
-
+  async function updateToken(amount) {
+    token += amount;
+    await db.collection("users").doc(userId).update({ token });
     updateTokenDisplay();
-    loadLeaderboard();
-  </script></body>
+  }
+
+  async function verifyTask(id, link) {
+    window.open(link, '_blank');
+    await updateToken(100); // Token update in Firebase
+    const taskElement = document.getElementById('task-' + id);
+    if (taskElement) {
+      taskElement.innerHTML = `<span>Completed!</span>`;
+      setTimeout(() => taskElement.remove(), 1500);
+    }
+  }
+
+  async function updateInvites() {
+    inviteCount++;
+    token += 100;
+    await db.collection("users").doc(userId).update({ inviteCount, token });
+    updateTokenDisplay();
+    document.getElementById("inviteList").innerHTML += `<div>@invited_user_${inviteCount}</div>`;
+  }
+
+  function updateTokenDisplay() {
+    document.getElementById('tokenCount').textContent = token + ' sym';
+    document.getElementById('inviteTokens').textContent = inviteCount * 100;
+    document.getElementById('inviteCount').textContent = inviteCount;
+    document.getElementById("leaderboardTop").innerHTML = `<strong>Your Token:</strong> ${token} sym`;
+  }
+
+  function switchTab(tabId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+  }
+
+  document.getElementById('friendsPage').addEventListener('click', function(e) {
+    if (e.target.tagName === 'BUTTON') updateInvites();
+  });
+
+  loadUserData();
+</script>
+</body>
 </html>
